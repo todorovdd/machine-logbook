@@ -103,6 +103,7 @@
                   </select>
                 <% } else { %>
                   <input type="<%= f.field_type === 'number' ? 'number' : (f.field_type === 'date' ? 'date' : 'text') %>"
+                         <%= f.field_type === 'number' ? 'step="any"' : '' %>
                          name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
                 <% } %>
               </div>
