@@ -3,7 +3,14 @@ const serverless = require('serverless-http');
 const buildApp = require('../../app');
 
 const app = buildApp();
-const handler = serverless(app);
+// Without this, binary responses (the QR code PNGs) get mangled into UTF-8
+// text somewhere in the Lambda/Netlify response pipeline and come out
+// corrupted — the browser then shows a broken image icon. Telling
+// serverless-http which content types are binary makes it base64-encode
+// the body and set isBase64Encoded, which Netlify needs to serve it intact.
+const handler = serverless(app, {
+  binary: ['image/png', 'image/*', 'application/octet-stream'],
+});
 
 // Netlify's redirect forwards the full original path as
 // "/.netlify/functions/server/<real-path>" (see netlify.toml, which uses
