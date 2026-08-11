@@ -35,8 +35,24 @@ create table if not exists service_records (
   created_at timestamptz default now()
 );
 
+create table if not exists field_definitions (
+  id bigint generated always as identity primary key,
+  key text unique not null,
+  label text not null,
+  field_type text not null default 'text', -- text | textarea | number | date | select
+  options jsonb,                            -- list of choices, only for field_type = 'select'
+  required boolean not null default false,
+  scope text not null default 'record',     -- 'machine' (filled once per machine) | 'record' (filled per service entry)
+  sort_order integer not null default 0,
+  created_at timestamptz default now()
+);
+
+alter table service_records add column if not exists custom_fields jsonb not null default '{}'::jsonb;
+alter table machines add column if not exists custom_fields jsonb not null default '{}'::jsonb;
+
 create index if not exists idx_machines_factory on machines(factory_id);
 create index if not exists idx_records_machine on service_records(machine_id);
+create index if not exists idx_field_definitions_order on field_definitions(scope, sort_order);
 
 -- Забележка за сигурност: тези таблици се четат/пишат само от сървърната
 -- функция (с service_role ключа), а не директно от браузъра, затова тук

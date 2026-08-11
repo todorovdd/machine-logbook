@@ -8,9 +8,13 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">Дигитален <span>дневник</span></div>
+    <div class="brand"><span class="dot"></span>ДИГИТАЛЕН ДНЕВНИК</div>
+    <nav>
+      <a href="/" class="active">Заводи</a>
+      <a href="/fields">Полета</a>
+    </nav>
     <div class="user-info">
-      <span><%= username %></span>
+      <span class="uname"><%= username %></span>
       <a href="/logout">Изход</a>
     </div>
   </header>
@@ -19,50 +23,100 @@
     <div class="breadcrumb">
       <a href="/">Заводи</a> / <a href="/factories/<%= factory.id %>"><%= factory.name %></a> / <%= machine.name %>
     </div>
-    <h1><%= machine.name %></h1>
-    <p class="muted"><%= machine.model || '' %> <%= machine.serial_number ? '· сериен №: ' + machine.serial_number : '' %></p>
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+      <div>
+        <h1><%= machine.name %></h1>
+        <p class="muted"><%= machine.model || '' %> <%= machine.serial_number ? '· сериен №: ' + machine.serial_number : '' %></p>
+      </div>
+      <a href="/machines/<%= machine.id %>/edit" class="btn secondary small">Редактирай машината</a>
+    </div>
+
+    <% if (machineFieldDefs && machineFieldDefs.length) { %>
+      <div class="card">
+        <div class="card-header"><h2 class="plain" style="margin:0;">Информация за машината</h2></div>
+        <div class="form-grid">
+          <% machineFieldDefs.forEach(f => { %>
+            <% if (machine.custom_fields && machine.custom_fields[f.key]) { %>
+              <div>
+                <div class="fd-meta" style="margin-bottom:2px;"><%= f.label %></div>
+                <div style="font-size:14px; font-weight:600;"><%= machine.custom_fields[f.key] %></div>
+              </div>
+            <% } %>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
 
     <div class="card">
-      <h2 style="margin-top:0;">QR код на машината</h2>
-      <p class="muted">Разпечатай и залепи този код на машината. При сканиране мениджърите виждат само данните за нея.</p>
+      <div class="card-header"><h2 class="plain" style="margin:0;">QR код на машината</h2></div>
+      <p class="muted" style="margin-top:0;">Разпечатай и залепи този код на машината. При сканиране мениджърите виждат само данните за нея.</p>
       <div class="qr-box">
         <img src="/machines/<%= machine.id %>/qr.png" alt="QR код">
       </div>
-      <div class="url-box">
+      <div class="url-box" style="margin-top:14px;">
         <span><%= publicUrl %></span>
       </div>
-      <p style="margin-top:10px;">
+      <p style="margin-top:14px;">
         <a class="btn secondary" href="/machines/<%= machine.id %>/qr.png" download="qr-<%= machine.slug %>.png">Свали QR (PNG)</a>
         <a class="btn secondary" href="<%= publicUrl %>" target="_blank">Отвори публичната страница</a>
       </p>
     </div>
 
     <div class="card">
-      <h2 style="margin-top:0;">Ново обслужване</h2>
+      <div class="card-header">
+        <h2 class="plain" style="margin:0;">Ново обслужване</h2>
+        <a href="/fields" class="muted" style="font-size:12px;">+ управление на полета</a>
+      </div>
       <form method="POST" action="/machines/<%= machine.id %>/records">
-        <div class="field">
-          <label>Дата на обслужване</label>
-          <input type="date" name="service_date" required value="<%= new Date().toISOString().slice(0,10) %>">
+        <div class="form-grid">
+          <div class="field">
+            <label>Дата на обслужване<span class="req">*</span></label>
+            <input type="date" name="service_date" required value="<%= new Date().toISOString().slice(0,10) %>">
+          </div>
+          <div class="field">
+            <label>Техник (по избор)</label>
+            <input type="text" name="technician" placeholder="напр. Димитър Тодоров">
+          </div>
         </div>
         <div class="field">
-          <label>Извършена работа</label>
+          <label>Извършена работа<span class="req">*</span></label>
           <textarea name="work_done" placeholder="напр. Смяна на филтър, смазване на лагери" required></textarea>
         </div>
         <div class="field">
           <label>Бележки (по избор)</label>
           <textarea name="notes" placeholder="Допълнителни наблюдения, препоръки за следващ път..."></textarea>
         </div>
-        <div class="field">
-          <label>Техник (по избор)</label>
-          <input type="text" name="technician" placeholder="напр. Димитър Тодоров">
-        </div>
+
+        <% if (recordFieldDefs && recordFieldDefs.length) { %>
+          <div class="form-grid">
+            <% recordFieldDefs.forEach(f => { %>
+              <div class="field">
+                <label><%= f.label %><% if (f.required) { %><span class="req">*</span><% } %></label>
+                <% if (f.field_type === 'textarea') { %>
+                  <textarea name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>></textarea>
+                <% } else if (f.field_type === 'select') { %>
+                  <select name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
+                    <option value="">— избери —</option>
+                    <% (f.options || []).forEach(opt => { %>
+                      <option value="<%= opt %>"><%= opt %></option>
+                    <% }) %>
+                  </select>
+                <% } else { %>
+                  <input type="<%= f.field_type === 'number' ? 'number' : (f.field_type === 'date' ? 'date' : 'text') %>"
+                         name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+
         <button type="submit">Запиши обслужване</button>
       </form>
     </div>
 
     <h2>История на обслужване (<%= records.length %>)</h2>
     <% if (records.length === 0) { %>
-      <div class="empty">Все още няма записи за тази машина.</div>
+      <div class="card"><div class="empty">Все още няма записи за тази машина.</div></div>
     <% } else { %>
       <% records.forEach(r => { %>
         <div class="record">
@@ -70,15 +124,22 @@
           <div class="work"><%= r.work_done %></div>
           <% if (r.notes) { %><div class="notes"><%= r.notes %></div><% } %>
           <% if (r.technician) { %><div class="tech">Техник: <%= r.technician %></div><% } %>
-          <form method="POST" action="/records/<%= r.id %>/delete" style="margin-top:6px;"
+          <% if (recordFieldDefs && recordFieldDefs.length && r.custom_fields) { %>
+            <% recordFieldDefs.forEach(f => { %>
+              <% if (r.custom_fields[f.key]) { %>
+                <div class="cf-row"><span class="cf-label"><%= f.label %>:</span> <%= r.custom_fields[f.key] %></div>
+              <% } %>
+            <% }) %>
+          <% } %>
+          <form method="POST" action="/records/<%= r.id %>/delete" style="margin-top:8px;"
                 onsubmit="return confirm('Изтриване на този запис?');">
-            <button type="submit" class="danger" style="font-size:12px; padding:3px 9px;">Изтрий</button>
+            <button type="submit" class="danger small">Изтрий</button>
           </form>
         </div>
       <% }) %>
     <% } %>
 
-    <form method="POST" action="/machines/<%= machine.id %>/delete" style="margin-top:20px;"
+    <form method="POST" action="/machines/<%= machine.id %>/delete" style="margin-top:24px;"
           onsubmit="return confirm('Изтриване на машината и цялата ѝ история?');">
       <button type="submit" class="danger">Изтрий машината</button>
     </form>

@@ -8,9 +8,13 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">Дигитален <span>дневник</span></div>
+    <div class="brand"><span class="dot"></span>ДИГИТАЛЕН ДНЕВНИК</div>
+    <nav>
+      <a href="/" class="active">Заводи</a>
+      <a href="/fields">Полета</a>
+    </nav>
     <div class="user-info">
-      <span><%= username %></span>
+      <span class="uname"><%= username %></span>
       <a href="/logout">Изход</a>
     </div>
   </header>
@@ -20,35 +24,50 @@
     <p class="muted">Избери завод, за да видиш машините в него, или добави нов завод.</p>
 
     <div class="card">
-      <h2 style="margin-top:0;">Нов завод</h2>
+      <div class="card-header"><h2 class="plain" style="margin:0;">Нов завод</h2></div>
       <form class="inline-form" method="POST" action="/factories">
-        <div class="field">
+        <div class="field" style="margin-bottom:0;">
           <label>Име на завода</label>
           <input type="text" name="name" placeholder="напр. Завод Пловдив" required>
         </div>
-        <div class="field">
+        <div class="field" style="margin-bottom:0;">
           <label>Локация (по избор)</label>
           <input type="text" name="location" placeholder="напр. гр. Пловдив">
         </div>
-        <button type="submit">Добави завод</button>
+        <button type="submit">+ Добави завод</button>
       </form>
     </div>
 
+    <h2>Заводи (<%= factories.length %>)</h2>
     <% if (factories.length === 0) { %>
-      <div class="empty">Все още няма добавени заводи.</div>
+      <div class="card"><div class="empty">Все още няма добавени заводи.</div></div>
     <% } else { %>
-      <div class="grid">
-        <% factories.forEach(f => { %>
-          <div class="item-card">
-            <div class="title"><a href="/factories/<%= f.id %>"><%= f.name %></a></div>
-            <div class="meta"><%= f.location || 'без локация' %></div>
-            <div class="meta"><%= f.machine_count %> машини</div>
-            <form method="POST" action="/factories/<%= f.id %>/delete" style="margin-top:8px;"
-                  onsubmit="return confirm('Изтриване на завода и всички машини в него?');">
-              <button type="submit" class="danger" style="font-size:12px; padding:4px 10px;">Изтрий завод</button>
-            </form>
-          </div>
-        <% }) %>
+      <div class="card" style="padding:0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Име</th>
+              <th>Локация</th>
+              <th class="num">Машини</th>
+              <th class="actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% factories.forEach(f => { %>
+              <tr>
+                <td><a class="row-link" href="/factories/<%= f.id %>"><%= f.name %></a></td>
+                <td class="muted"><%= f.location || '—' %></td>
+                <td class="num"><%= f.machine_count %></td>
+                <td class="actions">
+                  <form method="POST" action="/factories/<%= f.id %>/delete" style="display:inline;"
+                        onsubmit="return confirm('Изтриване на завода и всички машини в него?');">
+                    <button type="submit" class="danger small">Изтрий</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
       </div>
     <% } %>
   </div>

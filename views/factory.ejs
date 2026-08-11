@@ -8,9 +8,13 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">Дигитален <span>дневник</span></div>
+    <div class="brand"><span class="dot"></span>ДИГИТАЛЕН ДНЕВНИК</div>
+    <nav>
+      <a href="/" class="active">Заводи</a>
+      <a href="/fields">Полета</a>
+    </nav>
     <div class="user-info">
-      <span><%= username %></span>
+      <span class="uname"><%= username %></span>
       <a href="/logout">Изход</a>
     </div>
   </header>
@@ -21,42 +25,76 @@
     <p class="muted"><%= factory.location || '' %></p>
 
     <div class="card">
-      <h2 style="margin-top:0;">Нова машина</h2>
-      <form class="inline-form" method="POST" action="/factories/<%= factory.id %>/machines">
-        <div class="field">
-          <label>Име на машината</label>
-          <input type="text" name="name" placeholder="напр. CNC фреза №3" required>
+      <div class="card-header">
+        <h2 class="plain" style="margin:0;">Нова машина</h2>
+        <a href="/fields" class="muted" style="font-size:12px;">+ управление на полета</a>
+      </div>
+      <form method="POST" action="/factories/<%= factory.id %>/machines">
+        <div class="form-grid">
+          <div class="field">
+            <label>Име на машината<span class="req">*</span></label>
+            <input type="text" name="name" placeholder="напр. CNC фреза №3" required>
+          </div>
+          <div class="field">
+            <label>Модел (по избор)</label>
+            <input type="text" name="model" placeholder="напр. Haas VF-2">
+          </div>
+          <div class="field">
+            <label>Сериен номер (по избор)</label>
+            <input type="text" name="serial_number" placeholder="напр. SN-12345">
+          </div>
+          <% (machineFieldDefs || []).forEach(f => { %>
+            <div class="field">
+              <label><%= f.label %><% if (f.required) { %><span class="req">*</span><% } %></label>
+              <% if (f.field_type === 'textarea') { %>
+                <textarea name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>></textarea>
+              <% } else if (f.field_type === 'select') { %>
+                <select name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
+                  <option value="">— избери —</option>
+                  <% (f.options || []).forEach(opt => { %>
+                    <option value="<%= opt %>"><%= opt %></option>
+                  <% }) %>
+                </select>
+              <% } else { %>
+                <input type="<%= f.field_type === 'number' ? 'number' : (f.field_type === 'date' ? 'date' : 'text') %>"
+                       name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
+              <% } %>
+            </div>
+          <% }) %>
         </div>
-        <div class="field">
-          <label>Модел (по избор)</label>
-          <input type="text" name="model" placeholder="напр. Haas VF-2">
-        </div>
-        <div class="field">
-          <label>Сериен номер (по избор)</label>
-          <input type="text" name="serial_number" placeholder="напр. SN-12345">
-        </div>
-        <button type="submit">Добави машина</button>
+        <button type="submit">+ Добави машина</button>
       </form>
     </div>
 
     <h2>Машини (<%= machines.length %>)</h2>
     <% if (machines.length === 0) { %>
-      <div class="empty">Все още няма добавени машини в този завод.</div>
+      <div class="card"><div class="empty">Все още няма добавени машини в този завод.</div></div>
     <% } else { %>
-      <div class="grid">
-        <% machines.forEach(m => { %>
-          <div class="item-card">
-            <div class="title"><a href="/machines/<%= m.id %>"><%= m.name %></a></div>
-            <div class="meta"><%= m.model || '' %> <%= m.serial_number ? '· ' + m.serial_number : '' %></div>
-            <div class="meta">
-              <% if (m.last_service_date) { %>
-                <span class="badge ok">последно: <%= m.last_service_date %></span>
-              <% } else { %>
-                <span class="badge none">без обслужване</span>
-              <% } %>
-            </div>
-          </div>
-        <% }) %>
+      <div class="card" style="padding:0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Машина</th>
+              <th>Модел / сериен №</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% machines.forEach(m => { %>
+              <tr>
+                <td><a class="row-link" href="/machines/<%= m.id %>"><%= m.name %></a></td>
+                <td class="muted"><%= m.model || '—' %><%= m.serial_number ? ' · ' + m.serial_number : '' %></td>
+                <td>
+                  <% if (m.last_service_date) { %>
+                    <span class="badge ok">последно: <%= m.last_service_date %></span>
+                  <% } else { %>
+                    <span class="badge warn">без обслужване</span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
       </div>
     <% } %>
   </div>

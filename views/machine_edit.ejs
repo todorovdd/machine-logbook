@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редакция · <%= machine.name %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="dot"></span>ДИГИТАЛЕН ДНЕВНИК</div>
+    <nav>
+      <a href="/" class="active">Заводи</a>
+      <a href="/fields">Полета</a>
+    </nav>
+    <div class="user-info">
+      <span class="uname"><%= username %></span>
+      <a href="/logout">Изход</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Заводи</a> / <a href="/factories/<%= factory.id %>"><%= factory.name %></a> /
+      <a href="/machines/<%= machine.id %>"><%= machine.name %></a> / Редакция
+    </div>
+    <h1>Редактирай машина</h1>
+
+    <div class="card">
+      <form method="POST" action="/machines/<%= machine.id %>/edit">
+        <div class="form-grid">
+          <div class="field">
+            <label>Име на машината<span class="req">*</span></label>
+            <input type="text" name="name" required value="<%= machine.name %>">
+          </div>
+          <div class="field">
+            <label>Модел</label>
+            <input type="text" name="model" value="<%= machine.model || '' %>">
+          </div>
+          <div class="field">
+            <label>Сериен номер</label>
+            <input type="text" name="serial_number" value="<%= machine.serial_number || '' %>">
+          </div>
+          <% (machineFieldDefs || []).forEach(f => { %>
+            <div class="field">
+              <label><%= f.label %><% if (f.required) { %><span class="req">*</span><% } %></label>
+              <% var val = (machine.custom_fields && machine.custom_fields[f.key]) || ''; %>
+              <% if (f.field_type === 'textarea') { %>
+                <textarea name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>><%= val %></textarea>
+              <% } else if (f.field_type === 'select') { %>
+                <select name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
+                  <option value="">— избери —</option>
+                  <% (f.options || []).forEach(opt => { %>
+                    <option value="<%= opt %>" <%= val === opt ? 'selected' : '' %>><%= opt %></option>
+                  <% }) %>
+                </select>
+              <% } else { %>
+                <input type="<%= f.field_type === 'number' ? 'number' : (f.field_type === 'date' ? 'date' : 'text') %>"
+                       name="cf_<%= f.key %>" value="<%= val %>" <%= f.required ? 'required' : '' %>>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+        <button type="submit">Запази промените</button>
+        <a href="/machines/<%= machine.id %>" class="btn secondary" style="margin-left:8px;">Отказ</a>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

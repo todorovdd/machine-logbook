@@ -14,6 +14,24 @@
       <p class="muted"><%= machine.model || '' %> <%= machine.serial_number ? '· сериен №: ' + machine.serial_number : '' %></p>
     </div>
 
+    <% if (machineFieldDefs && machineFieldDefs.length) { %>
+      <% var hasMachineInfo = machineFieldDefs.some(f => machine.custom_fields && machine.custom_fields[f.key]); %>
+      <% if (hasMachineInfo) { %>
+        <div class="card">
+          <div class="form-grid">
+            <% machineFieldDefs.forEach(f => { %>
+              <% if (machine.custom_fields && machine.custom_fields[f.key]) { %>
+                <div>
+                  <div class="fd-meta" style="margin-bottom:2px;"><%= f.label %></div>
+                  <div style="font-size:14px; font-weight:600;"><%= machine.custom_fields[f.key] %></div>
+                </div>
+              <% } %>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+    <% } %>
+
     <% if (records.length === 0) { %>
       <div class="card">
         <div class="empty">Все още няма записано обслужване за тази машина.</div>
@@ -21,11 +39,18 @@
     <% } else { %>
       <div class="card">
         <span class="badge ok">Последно обслужване</span>
-        <div class="record" style="margin-top:10px; background:transparent; padding-left:12px;">
+        <div class="record" style="margin-top:12px; background:transparent; border:none; padding-left:12px;">
           <div class="date"><%= records[0].service_date %></div>
           <div class="work"><%= records[0].work_done %></div>
           <% if (records[0].notes) { %><div class="notes"><%= records[0].notes %></div><% } %>
           <% if (records[0].technician) { %><div class="tech">Техник: <%= records[0].technician %></div><% } %>
+          <% if (recordFieldDefs && recordFieldDefs.length && records[0].custom_fields) { %>
+            <% recordFieldDefs.forEach(f => { %>
+              <% if (records[0].custom_fields[f.key]) { %>
+                <div class="cf-row"><span class="cf-label"><%= f.label %>:</span> <%= records[0].custom_fields[f.key] %></div>
+              <% } %>
+            <% }) %>
+          <% } %>
         </div>
       </div>
 
@@ -37,12 +62,19 @@
             <div class="work"><%= r.work_done %></div>
             <% if (r.notes) { %><div class="notes"><%= r.notes %></div><% } %>
             <% if (r.technician) { %><div class="tech">Техник: <%= r.technician %></div><% } %>
+            <% if (recordFieldDefs && recordFieldDefs.length && r.custom_fields) { %>
+              <% recordFieldDefs.forEach(f => { %>
+                <% if (r.custom_fields[f.key]) { %>
+                  <div class="cf-row"><span class="cf-label"><%= f.label %>:</span> <%= r.custom_fields[f.key] %></div>
+                <% } %>
+              <% }) %>
+            <% } %>
           </div>
         <% }) %>
       <% } %>
     <% } %>
 
-    <p class="muted" style="text-align:center; margin-top:24px; font-size:12px;">
+    <p class="muted" style="text-align:center; margin-top:28px; font-size:12px;">
       Дигитален дневник за обслужване · само за тази машина
     </p>
   </div>

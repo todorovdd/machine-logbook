@@ -28,6 +28,18 @@ function buildApp() {
     res.type('html').send(html);
   }
 
+  // Turns the posted form fields (cf_<key>) into a plain object keyed by
+  // field definition key, only for fields that are currently defined.
+  function collectCustomFieldValues(fieldDefs, body) {
+    const values = {};
+    for (const f of fieldDefs) {
+      const raw = body['cf_' + f.key];
+      if (raw === undefined) continue;
+      values[f.key] = typeof raw === 'string' ? raw.trim() : raw;
+    }
+    return values;
+  }
+
   // ---------- AUTH ----------
   app.get('/login', (req, res) => {
     if (currentUser(req)) return res.redirect('/');
@@ -82,7 +94,8 @@ function buildApp() {
       const factory = await db.getFactory(req.params.id);
       if (!factory) return res.status(404).send('Заводът не е намерен.');
       const machines = await db.listMachinesByFactory(req.params.id);
-      render(res, 'factory', { factory, machines, username: req.user.username });
+      const machineFieldDefs = await db.listFieldDefinitions('machine');
+      render(res, 'factory', { factory, machines, machineFieldDefs, username: req.user.username });
     } catch (err) { next(err); }
   });
 
@@ -90,7 +103,9 @@ function buildApp() {
     try {
       const { name, model, serial_number } = req.body;
       if (name && name.trim()) {
-        await db.createMachine(req.params.id, name.trim(), (model || '').trim(), (serial_number || '').trim());
+        const machineFieldDefs = await db.listFieldDefinitions('machine');
+        const customFields = collectCustomFieldValues(machineFieldDefs, req.body);
+        await db.createMachine(req.params.id, name.trim(), (model || '').trim(), (serial_number || '').trim(), customFields);
       }
       res.redirect('/factories/' + req.params.id);
     } catch (err) { next(err); }
@@ -103,8 +118,34 @@ function buildApp() {
       if (!machine) return res.status(404).send('Машината не е намерена.');
       const factory = await db.getFactory(machine.factory_id);
       const records = await db.listRecordsByMachine(machine.id);
+      const recordFieldDefs = await db.listFieldDefinitions('record');
+      const machineFieldDefs = await db.listFieldDefinitions('machine');
       const publicUrl = `${BASE_URL}/m/${machine.slug}`;
-      render(res, 'machine_admin', { machine, factory, records, publicUrl, username: req.user.username });
+      render(res, 'machine_admin', {
+        machine, factory, records, recordFieldDefs, machineFieldDefs, publicUrl, username: req.user.username,
+      });
+    } catch (err) { next(err); }
+  });
+
+  app.get('/machines/:id/edit', requireAuth, async (req, res, next) => {
+    try {
+      const machine = await db.getMachine(req.params.id);
+      if (!machine) return res.status(404).send('Машината не е намерена.');
+      const factory = await db.getFactory(machine.factory_id);
+      const machineFieldDefs = await db.listFieldDefinitions('machine');
+      render(res, 'machine_edit', { machine, factory, machineFieldDefs, username: req.user.username });
+    } catch (err) { next(err); }
+  });
+
+  app.post('/machines/:id/edit', requireAuth, async (req, res, next) => {
+    try {
+      const { name, model, serial_number } = req.body;
+      const machineFieldDefs = await db.listFieldDefinitions('machine');
+      const customFields = collectCustomFieldValues(machineFieldDefs, req.body);
+      await db.updateMachine(req.params.id, {
+        name: (name || '').trim(), model: (model || '').trim(), serialNumber: (serial_number || '').trim(), customFields,
+      });
+      res.redirect('/machines/' + req.params.id);
     } catch (err) { next(err); }
   });
 
@@ -112,7 +153,9 @@ function buildApp() {
     try {
       const { service_date, work_done, notes, technician } = req.body;
       if (service_date && work_done) {
-        await db.createRecord(req.params.id, service_date, work_done.trim(), (notes || '').trim(), (technician || '').trim());
+        const recordFieldDefs = await db.listFieldDefinitions('record');
+        const customFields = collectCustomFieldValues(recordFieldDefs, req.body);
+        await db.createRecord(req.params.id, service_date, work_done.trim(), (notes || '').trim(), (technician || '').trim(), customFields);
       }
       res.redirect('/machines/' + req.params.id);
     } catch (err) { next(err); }
@@ -147,6 +190,70 @@ function buildApp() {
     } catch (err) { next(err); }
   });
 
+  // ---------- CUSTOM FIELD DEFINITIONS (admin-configurable form fields) ----------
+  app.get('/fields', requireAuth, async (req, res, next) => {
+    try {
+      const machineFieldDefs = await db.listFieldDefinitions('machine');
+      const recordFieldDefs = await db.listFieldDefinitions('record');
+      render(res, 'fields', { machineFieldDefs, recordFieldDefs, username: req.user.username, editingField: null, error: null });
+    } catch (err) { next(err); }
+  });
+
+  app.get('/fields/:id/edit', requireAuth, async (req, res, next) => {
+    try {
+      const machineFieldDefs = await db.listFieldDefinitions('machine');
+      const recordFieldDefs = await db.listFieldDefinitions('record');
+      const editingField = await db.getFieldDefinition(req.params.id);
+      render(res, 'fields', { machineFieldDefs, recordFieldDefs, username: req.user.username, editingField, error: null });
+    } catch (err) { next(err); }
+  });
+
+  app.post('/fields', requireAuth, async (req, res, next) => {
+    try {
+      const { label, field_type, options, required, scope } = req.body;
+      if (label && label.trim()) {
+        const optionsList = (options || '').split(',').map(s => s.trim()).filter(Boolean);
+        await db.createFieldDefinition({
+          label: label.trim(), field_type: field_type || 'text', options: optionsList,
+          required: required === 'on', scope: scope === 'machine' ? 'machine' : 'record',
+        });
+      }
+      res.redirect('/fields');
+    } catch (err) { next(err); }
+  });
+
+  app.post('/fields/:id/edit', requireAuth, async (req, res, next) => {
+    try {
+      const { label, field_type, options, required } = req.body;
+      const optionsList = (options || '').split(',').map(s => s.trim()).filter(Boolean);
+      await db.updateFieldDefinition(req.params.id, {
+        label: (label || '').trim(), field_type: field_type || 'text', options: optionsList, required: required === 'on',
+      });
+      res.redirect('/fields');
+    } catch (err) { next(err); }
+  });
+
+  app.post('/fields/:id/delete', requireAuth, async (req, res, next) => {
+    try {
+      await db.deleteFieldDefinition(req.params.id);
+      res.redirect('/fields');
+    } catch (err) { next(err); }
+  });
+
+  app.post('/fields/:id/move-up', requireAuth, async (req, res, next) => {
+    try {
+      await db.moveFieldDefinition(req.params.id, 'up');
+      res.redirect('/fields');
+    } catch (err) { next(err); }
+  });
+
+  app.post('/fields/:id/move-down', requireAuth, async (req, res, next) => {
+    try {
+      await db.moveFieldDefinition(req.params.id, 'down');
+      res.redirect('/fields');
+    } catch (err) { next(err); }
+  });
+
   // ---------- PUBLIC MACHINE PAGE (scanned via QR, no login) ----------
   app.get('/m/:slug', async (req, res, next) => {
     try {
@@ -154,7 +261,9 @@ function buildApp() {
       if (!machine) return render(res, 'public_not_found', {}, 404);
       const factory = await db.getFactory(machine.factory_id);
       const records = await db.listRecordsByMachine(machine.id);
-      render(res, 'machine_public', { machine, factory, records });
+      const recordFieldDefs = await db.listFieldDefinitions('record');
+      const machineFieldDefs = await db.listFieldDefinitions('machine');
+      render(res, 'machine_public', { machine, factory, records, recordFieldDefs, machineFieldDefs });
     } catch (err) { next(err); }
   });
 

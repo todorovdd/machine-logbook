@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Полета · Дигитален дневник</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="dot"></span>ДИГИТАЛЕН ДНЕВНИК</div>
+    <nav>
+      <a href="/">Заводи</a>
+      <a href="/fields" class="active">Полета</a>
+    </nav>
+    <div class="user-info">
+      <span class="uname"><%= username %></span>
+      <a href="/logout">Изход</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>Персонализирани полета</h1>
+    <p class="muted">Два вида полета: за <strong>машина</strong> (попълват се веднъж, при създаване/редакция на машината — напр. продукт, обем на резервоара) и за <strong>обслужване</strong> (попълват се при всеки отделен запис — напр. концентрация, pH). Датата, извършената работа, бележките и техникът винаги присъстват по подразбиране в записите за обслужване.</p>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="plain" style="margin:0;"><%= editingField ? 'Редактирай поле' : 'Ново поле' %></h2>
+      </div>
+      <form method="POST" action="<%= editingField ? ('/fields/' + editingField.id + '/edit') : '/fields' %>">
+        <div class="form-grid">
+          <div class="field">
+            <label>Име на полето<span class="req">*</span></label>
+            <input type="text" name="label" placeholder="напр. Цена на резервна част" required
+                   value="<%= editingField ? editingField.label : '' %>">
+          </div>
+          <div class="field">
+            <label>Тип</label>
+            <select name="field_type">
+              <option value="text" <%= editingField && editingField.field_type === 'text' ? 'selected' : '' %>>Текст (кратък)</option>
+              <option value="textarea" <%= editingField && editingField.field_type === 'textarea' ? 'selected' : '' %>>Текст (дълъг)</option>
+              <option value="number" <%= editingField && editingField.field_type === 'number' ? 'selected' : '' %>>Число</option>
+              <option value="date" <%= editingField && editingField.field_type === 'date' ? 'selected' : '' %>>Дата</option>
+              <option value="select" <%= editingField && editingField.field_type === 'select' ? 'selected' : '' %>>Избор от списък</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Прилага се към</label>
+            <% if (editingField) { %>
+              <input type="text" value="<%= editingField.scope === 'machine' ? 'Машина (не може да се смени)' : 'Обслужване (не може да се смени)' %>" disabled>
+            <% } else { %>
+              <select name="scope">
+                <option value="record">Всеки запис за обслужване</option>
+                <option value="machine">Машината (веднъж)</option>
+              </select>
+            <% } %>
+          </div>
+        </div>
+        <div class="field">
+          <label>Опции за избор (само за тип "Избор от списък") — раздели със запетая</label>
+          <input type="text" name="options" placeholder="напр. Ниско, Средно, Високо"
+                 value="<%= editingField && editingField.options ? editingField.options.join(', ') : '' %>">
+        </div>
+        <div class="checkbox-row" style="margin-bottom:16px;">
+          <input type="checkbox" name="required" id="required" <%= editingField && editingField.required ? 'checked' : '' %>>
+          <label for="required">Задължително поле</label>
+        </div>
+        <button type="submit"><%= editingField ? 'Запази промените' : '+ Добави поле' %></button>
+        <% if (editingField) { %>
+          <a href="/fields" class="btn secondary" style="margin-left:8px;">Отказ</a>
+        <% } %>
+      </form>
+    </div>
+
+    <h2>Полета за машина (<%= machineFieldDefs.length %>)</h2>
+    <% if (machineFieldDefs.length === 0) { %>
+      <div class="card"><div class="empty">Няма добавени полета за машина.</div></div>
+    <% } else { %>
+      <% machineFieldDefs.forEach((f, i) => { %>
+        <div class="field-def-row">
+          <div class="order-controls">
+            <form method="POST" action="/fields/<%= f.id %>/move-up"><button type="submit" <%= i === 0 ? 'disabled' : '' %>>▲</button></form>
+            <form method="POST" action="/fields/<%= f.id %>/move-down"><button type="submit" <%= i === machineFieldDefs.length - 1 ? 'disabled' : '' %>>▼</button></form>
+          </div>
+          <div class="fd-info">
+            <div class="fd-label"><%= f.label %><% if (f.required) { %><span class="req">*</span><% } %></div>
+            <div class="fd-meta">
+              тип: <%= ({text:'текст', textarea:'дълъг текст', number:'число', date:'дата', select:'избор от списък'})[f.field_type] || f.field_type %>
+              <% if (f.field_type === 'select' && f.options && f.options.length) { %>&nbsp;·&nbsp;опции: <%= f.options.join(', ') %><% } %>
+            </div>
+          </div>
+          <div class="fd-actions">
+            <a href="/fields/<%= f.id %>/edit" class="btn secondary small">Редактирай</a>
+            <form method="POST" action="/fields/<%= f.id %>/delete" onsubmit="return confirm('Изтриване на полето?');">
+              <button type="submit" class="danger small">Изтрий</button>
+            </form>
+          </div>
+        </div>
+      <% }) %>
+    <% } %>
+
+    <h2>Полета за обслужване (<%= recordFieldDefs.length %>)</h2>
+    <% if (recordFieldDefs.length === 0) { %>
+      <div class="card"><div class="empty">Няма добавени полета за обслужване.</div></div>
+    <% } else { %>
+      <% recordFieldDefs.forEach((f, i) => { %>
+        <div class="field-def-row">
+          <div class="order-controls">
+            <form method="POST" action="/fields/<%= f.id %>/move-up"><button type="submit" <%= i === 0 ? 'disabled' : '' %>>▲</button></form>
+            <form method="POST" action="/fields/<%= f.id %>/move-down"><button type="submit" <%= i === recordFieldDefs.length - 1 ? 'disabled' : '' %>>▼</button></form>
+          </div>
+          <div class="fd-info">
+            <div class="fd-label"><%= f.label %><% if (f.required) { %><span class="req">*</span><% } %></div>
+            <div class="fd-meta">
+              тип: <%= ({text:'текст', textarea:'дълъг текст', number:'число', date:'дата', select:'избор от списък'})[f.field_type] || f.field_type %>
+              <% if (f.field_type === 'select' && f.options && f.options.length) { %>&nbsp;·&nbsp;опции: <%= f.options.join(', ') %><% } %>
+            </div>
+          </div>
+          <div class="fd-actions">
+            <a href="/fields/<%= f.id %>/edit" class="btn secondary small">Редактирай</a>
+            <form method="POST" action="/fields/<%= f.id %>/delete" onsubmit="return confirm('Изтриване на полето?');">
+              <button type="submit" class="danger small">Изтрий</button>
+            </form>
+          </div>
+        </div>
+      <% }) %>
+    <% } %>
+  </div>
+</body>
+</html>
