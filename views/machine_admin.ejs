@@ -11,9 +11,9 @@
     <div class="brand"><span class="dot"></span>ДИГИТАЛЕН ДНЕВНИК</div>
     <nav>
       <a href="/" class="active">Заводи</a>
-      <a href="/fields">Полета</a>
     </nav>
     <div class="user-info">
+      <a href="/fields" title="Настройки на полета">⚙ Полета</a>
       <span class="uname"><%= username %></span>
       <a href="/logout">Изход</a>
     </div>
@@ -114,6 +114,35 @@
       </form>
     </div>
 
+    <% var numericFields = (recordFieldDefs || []).filter(function(f) { return f.field_type === 'number'; }); %>
+    <% if (numericFields.length) { %>
+      <div class="card">
+        <div class="card-header"><h2 class="plain" style="margin:0;">Графики</h2></div>
+        <p class="muted" style="margin-top:0;">Генерира се при поискване — избери показател.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
+          <% numericFields.forEach(function(f) { %>
+            <button type="button" class="btn secondary small chart-toggle-btn" data-key="<%= f.key %>" data-label="<%= f.label %>">📈 <%= f.label %></button>
+          <% }) %>
+        </div>
+        <% numericFields.forEach(function(f) { %>
+          <div class="chart-wrap" id="chart-wrap-<%= f.key %>" style="display:none; margin-top:14px;">
+            <canvas id="chart-<%= f.key %>" height="90"></canvas>
+          </div>
+        <% }) %>
+      </div>
+      <script>
+        window.__chartData = <%- JSON.stringify(
+          numericFields.reduce(function(acc, f) {
+            acc[f.key] = records
+              .filter(function(r) { return r.custom_fields && r.custom_fields[f.key] !== undefined && r.custom_fields[f.key] !== ''; })
+              .map(function(r) { return { date: r.service_date, value: Number(r.custom_fields[f.key]) }; })
+              .sort(function(a, b) { return a.date.localeCompare(b.date); });
+            return acc;
+          }, {})
+        ).replace(/</g, '\\u003c') %>;
+      </script>
+    <% } %>
+
     <h2>История на обслужване (<%= records.length %>)</h2>
     <% if (records.length === 0) { %>
       <div class="card"><div class="empty">Все още няма записи за тази машина.</div></div>
@@ -144,5 +173,50 @@
       <button type="submit" class="danger">Изтрий машината</button>
     </form>
   </div>
+
+  <% if (numericFields.length) { %>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" defer></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var charts = {};
+        document.querySelectorAll('.chart-toggle-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var key = btn.getAttribute('data-key');
+            var label = btn.getAttribute('data-label');
+            var wrap = document.getElementById('chart-wrap-' + key);
+            var willShow = wrap.style.display === 'none';
+            wrap.style.display = willShow ? 'block' : 'none';
+            if (willShow && !charts[key]) {
+              var points = (window.__chartData && window.__chartData[key]) || [];
+              var ctx = document.getElementById('chart-' + key).getContext('2d');
+              charts[key] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                  labels: points.map(function (p) { return p.date; }),
+                  datasets: [{
+                    label: label,
+                    data: points.map(function (p) { return p.value; }),
+                    borderColor: '#2dd4bf',
+                    backgroundColor: 'rgba(45,212,191,0.15)',
+                    pointBackgroundColor: '#2dd4bf',
+                    tension: 0.3,
+                    fill: true,
+                  }],
+                },
+                options: {
+                  responsive: true,
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    x: { ticks: { color: '#9fb0c3' }, grid: { color: '#24374f' } },
+                    y: { ticks: { color: '#9fb0c3' }, grid: { color: '#24374f' } },
+                  },
+                },
+              });
+            }
+          });
+        });
+      });
+    </script>
+  <% } %>
 </body>
 </html>
