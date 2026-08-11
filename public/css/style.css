@@ -279,6 +279,50 @@ select {
   margin-bottom: 8px;
 }
 
+/* Machine status selector (Статус на машина) — single-select radio "chips" */
+.status-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.status-group input[type=radio] {
+  position: absolute;
+  opacity: 0;
+  width: 1px; height: 1px;
+  pointer-events: none;
+}
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-elevated);
+  color: var(--text-dim);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.status-chip:hover { border-color: var(--accent); color: var(--text); }
+.status-group input[type=radio]:checked + .status-chip.status-ok {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.status-group input[type=radio]:checked + .status-chip.status-repair {
+  background: var(--warn-soft);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.status-group input[type=radio]:checked + .status-chip.status-unused {
+  background: var(--surface-2);
+  border-color: var(--muted);
+  color: var(--text);
+}
+.status-group input[type=radio]:focus-visible + .status-chip {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 button, .btn {
   display: inline-flex;
   align-items: center;

@@ -67,7 +67,21 @@
         <h2 class="plain" style="margin:0;">Ново обслужване</h2>
         <a href="/fields" class="muted" style="font-size:12px;">+ управление на полета</a>
       </div>
-      <form method="POST" action="/machines/<%= machine.id %>/records">
+      <form method="POST" action="/machines/<%= machine.id %>/records" id="record-form">
+        <div class="field">
+          <label>Статус на машина<span class="req">*</span></label>
+          <div class="status-group">
+            <input type="radio" id="status-ok" name="machine_status" value="Изправна" checked>
+            <label for="status-ok" class="status-chip status-ok">Изправна</label>
+
+            <input type="radio" id="status-repair" name="machine_status" value="В ремонт">
+            <label for="status-repair" class="status-chip status-repair">В ремонт</label>
+
+            <input type="radio" id="status-unused" name="machine_status" value="Не се използва">
+            <label for="status-unused" class="status-chip status-unused">Не се използва</label>
+          </div>
+        </div>
+
         <div class="form-grid">
           <div class="field">
             <label>Дата на обслужване<span class="req">*</span></label>
@@ -78,47 +92,81 @@
             <input type="text" name="technician" value="Асен Петров" placeholder="напр. Димитър Тодоров">
           </div>
         </div>
-        <div class="field">
-          <label>Извършена работа<span class="req">*</span></label>
-          <div class="chip-group">
-            <% ['Измерване на %', 'Измерване на PH', 'Ниво охл.течност', 'Проверка замърсеност'].forEach(function (opt, i) { %>
-              <input type="checkbox" id="wd-<%= i %>" name="work_options" value="<%= opt %>">
-              <label for="wd-<%= i %>" class="chip"><%= opt %></label>
-            <% }) %>
-          </div>
-        </div>
-        <div class="field">
-          <label>Бележки (по избор)</label>
-          <textarea name="notes" placeholder="Допълнителни наблюдения, препоръки за следващ път..."></textarea>
-        </div>
 
-        <% if (recordFieldDefs && recordFieldDefs.length) { %>
-          <div class="form-grid">
-            <% recordFieldDefs.forEach(f => { %>
-              <div class="field">
-                <label><%= f.label %><% if (f.required) { %><span class="req">*</span><% } %></label>
-                <% if (f.field_type === 'textarea') { %>
-                  <textarea name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>></textarea>
-                <% } else if (f.field_type === 'select') { %>
-                  <select name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
-                    <option value="">— избери —</option>
-                    <% (f.options || []).forEach(opt => { %>
-                      <option value="<%= opt %>"><%= opt %></option>
-                    <% }) %>
-                  </select>
-                <% } else { %>
-                  <input type="<%= f.field_type === 'number' ? 'number' : (f.field_type === 'date' ? 'date' : 'text') %>"
-                         <%- f.field_type === 'number' ? 'step="any"' : '' %>
-                         name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
-                <% } %>
-              </div>
-            <% }) %>
+        <div id="service-fields">
+          <div class="field">
+            <label>Извършена работа<span class="req">*</span></label>
+            <div class="chip-group">
+              <% ['Измерване на %', 'Измерване на PH', 'Ниво охл.течност', 'Проверка замърсеност'].forEach(function (opt, i) { %>
+                <input type="checkbox" id="wd-<%= i %>" name="work_options" value="<%= opt %>">
+                <label for="wd-<%= i %>" class="chip"><%= opt %></label>
+              <% }) %>
+            </div>
           </div>
-        <% } %>
+          <div class="field">
+            <label>Бележки (по избор)</label>
+            <textarea name="notes" placeholder="Допълнителни наблюдения, препоръки за следващ път..."></textarea>
+          </div>
+
+          <% if (recordFieldDefs && recordFieldDefs.length) { %>
+            <div class="form-grid">
+              <% recordFieldDefs.forEach(f => { %>
+                <div class="field">
+                  <label><%= f.label %><% if (f.required) { %><span class="req">*</span><% } %></label>
+                  <% if (f.field_type === 'textarea') { %>
+                    <textarea name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>></textarea>
+                  <% } else if (f.field_type === 'select') { %>
+                    <select name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
+                      <option value="">— избери —</option>
+                      <% (f.options || []).forEach(opt => { %>
+                        <option value="<%= opt %>"><%= opt %></option>
+                      <% }) %>
+                    </select>
+                  <% } else { %>
+                    <input type="<%= f.field_type === 'number' ? 'number' : (f.field_type === 'date' ? 'date' : 'text') %>"
+                           <%- f.field_type === 'number' ? 'step="any"' : '' %>
+                           name="cf_<%= f.key %>" <%= f.required ? 'required' : '' %>>
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </div>
 
         <button type="submit">Запиши обслужване</button>
       </form>
     </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var form = document.getElementById('record-form');
+        if (!form) return;
+        var serviceFields = document.getElementById('service-fields');
+        var radios = form.querySelectorAll('input[name="machine_status"]');
+
+        function syncRequired(root, enable) {
+          root.querySelectorAll('[data-was-required]').forEach(function (el) {
+            if (enable) { el.required = true; el.removeAttribute('data-was-required'); }
+          });
+          if (!enable) {
+            root.querySelectorAll('[required]').forEach(function (el) {
+              el.required = false;
+              el.setAttribute('data-was-required', '1');
+            });
+          }
+        }
+
+        function applyStatus() {
+          var checked = form.querySelector('input[name="machine_status"]:checked');
+          var isOk = !checked || checked.value === 'Изправна';
+          serviceFields.style.display = isOk ? '' : 'none';
+          syncRequired(serviceFields, isOk);
+        }
+
+        radios.forEach(function (r) { r.addEventListener('change', applyStatus); });
+        applyStatus();
+      });
+    </script>
 
     <% var numericFields = (recordFieldDefs || []).filter(function(f) { return f.field_type === 'number'; }); %>
     <% if (numericFields.length) { %>
@@ -157,7 +205,11 @@
       <% records.forEach(r => { %>
         <div class="record">
           <div class="date"><%= fmtDate(r.service_date) %></div>
-          <div class="work"><%= r.work_done %></div>
+          <% if (r.work_done === 'В ремонт' || r.work_done === 'Не се използва') { %>
+            <div class="work"><span class="badge <%= r.work_done === 'В ремонт' ? 'warn' : 'none' %>"><%= r.work_done %></span></div>
+          <% } else { %>
+            <div class="work"><%= r.work_done %></div>
+          <% } %>
           <% if (r.notes) { %><div class="notes"><%= r.notes %></div><% } %>
           <% if (r.technician) { %><div class="tech">Техник: <%= r.technician %></div><% } %>
           <% if (recordFieldDefs && recordFieldDefs.length && r.custom_fields) { %>

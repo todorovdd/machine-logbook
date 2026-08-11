@@ -41,7 +41,11 @@
         <span class="badge ok">Последно обслужване</span>
         <div class="record" style="margin-top:12px; background:transparent; border:none; padding-left:12px;">
           <div class="date"><%= fmtDate(records[0].service_date) %></div>
-          <div class="work"><%= records[0].work_done %></div>
+          <% if (records[0].work_done === 'В ремонт' || records[0].work_done === 'Не се използва') { %>
+            <div class="work"><span class="badge <%= records[0].work_done === 'В ремонт' ? 'warn' : 'none' %>"><%= records[0].work_done %></span></div>
+          <% } else { %>
+            <div class="work"><%= records[0].work_done %></div>
+          <% } %>
           <% if (records[0].notes) { %><div class="notes"><%= records[0].notes %></div><% } %>
           <% if (records[0].technician) { %><div class="tech">Техник: <%= records[0].technician %></div><% } %>
           <% if (recordFieldDefs && recordFieldDefs.length && records[0].custom_fields) { %>
@@ -59,7 +63,11 @@
         <% records.slice(1).forEach(r => { %>
           <div class="record">
             <div class="date"><%= fmtDate(r.service_date) %></div>
-            <div class="work"><%= r.work_done %></div>
+            <% if (r.work_done === 'В ремонт' || r.work_done === 'Не се използва') { %>
+              <div class="work"><span class="badge <%= r.work_done === 'В ремонт' ? 'warn' : 'none' %>"><%= r.work_done %></span></div>
+            <% } else { %>
+              <div class="work"><%= r.work_done %></div>
+            <% } %>
             <% if (r.notes) { %><div class="notes"><%= r.notes %></div><% } %>
             <% if (r.technician) { %><div class="tech">Техник: <%= r.technician %></div><% } %>
             <% if (recordFieldDefs && recordFieldDefs.length && r.custom_fields) { %>

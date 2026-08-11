@@ -159,20 +159,33 @@ function buildApp() {
     } catch (err) { next(err); }
   });
 
+  // "Статус на машина" — normal service entries require the usual fields,
+  // but "В ремонт" / "Не се използва" just log the status itself with no
+  // service work performed, so all the service-detail fields are optional.
+  const MACHINE_STATUSES = ['Изправна', 'В ремонт', 'Не се използва'];
+
   app.post('/machines/:id/records', requireAuth, async (req, res, next) => {
     try {
-      const { service_date, notes, technician } = req.body;
-      // "Извършена работа" is now a multi-select set of checkbox buttons
-      // instead of free text — normalize to an array (a single checked box
-      // arrives as a plain string, multiple as an array) and join them.
-      const raw = req.body.work_options;
-      const workOptions = Array.isArray(raw) ? raw : (raw ? [raw] : []);
-      const work_done = workOptions.join(', ');
+      const { service_date, notes, technician, machine_status } = req.body;
+      const status = MACHINE_STATUSES.includes(machine_status) ? machine_status : 'Изправна';
 
-      if (service_date && work_done) {
+      if (!service_date) return res.redirect('/machines/' + req.params.id);
+
+      if (status === 'Изправна') {
+        // "Извършена работа" is a multi-select set of checkbox buttons —
+        // normalize to an array (a single checked box arrives as a plain
+        // string, multiple as an array) and join them.
+        const raw = req.body.work_options;
+        const workOptions = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+        const work_done = workOptions.join(', ');
+        if (!work_done) return res.redirect('/machines/' + req.params.id);
+
         const recordFieldDefs = await db.listFieldDefinitions('record');
         const customFields = collectCustomFieldValues(recordFieldDefs, req.body);
         await db.createRecord(req.params.id, service_date, work_done, (notes || '').trim(), (technician || '').trim(), customFields);
+      } else {
+        // No actual service performed — just record the status.
+        await db.createRecord(req.params.id, service_date, status, '', (technician || '').trim(), {});
       }
       res.redirect('/machines/' + req.params.id);
     } catch (err) { next(err); }
