@@ -75,12 +75,17 @@
           </div>
           <div class="field">
             <label>Техник (по избор)</label>
-            <input type="text" name="technician" placeholder="напр. Димитър Тодоров">
+            <input type="text" name="technician" value="Асен Петров" placeholder="напр. Димитър Тодоров">
           </div>
         </div>
         <div class="field">
           <label>Извършена работа<span class="req">*</span></label>
-          <textarea name="work_done" placeholder="напр. Смяна на филтър, смазване на лагери" required></textarea>
+          <div class="chip-group">
+            <% ['Измерване на %', 'Измерване на PH', 'Ниво охл.течност', 'Проверка замърсеност'].forEach(function (opt, i) { %>
+              <input type="checkbox" id="wd-<%= i %>" name="work_options" value="<%= opt %>">
+              <label for="wd-<%= i %>" class="chip"><%= opt %></label>
+            <% }) %>
+          </div>
         </div>
         <div class="field">
           <label>Бележки (по избор)</label>

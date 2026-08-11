@@ -151,11 +151,18 @@ function buildApp() {
 
   app.post('/machines/:id/records', requireAuth, async (req, res, next) => {
     try {
-      const { service_date, work_done, notes, technician } = req.body;
+      const { service_date, notes, technician } = req.body;
+      // "Извършена работа" is now a multi-select set of checkbox buttons
+      // instead of free text — normalize to an array (a single checked box
+      // arrives as a plain string, multiple as an array) and join them.
+      const raw = req.body.work_options;
+      const workOptions = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+      const work_done = workOptions.join(', ');
+
       if (service_date && work_done) {
         const recordFieldDefs = await db.listFieldDefinitions('record');
         const customFields = collectCustomFieldValues(recordFieldDefs, req.body);
-        await db.createRecord(req.params.id, service_date, work_done.trim(), (notes || '').trim(), (technician || '').trim(), customFields);
+        await db.createRecord(req.params.id, service_date, work_done, (notes || '').trim(), (technician || '').trim(), customFields);
       }
       res.redirect('/machines/' + req.params.id);
     } catch (err) { next(err); }
