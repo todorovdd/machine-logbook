@@ -272,23 +272,23 @@ select {
   outline-offset: 2px;
 }
 
-/* Dashboard title row: "Заводи" heading with the logo to its right */
+/* Dashboard title row: "Заводи" heading with the logo immediately next to it */
 .page-title-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: flex-start;
+  gap: 10px;
   flex-wrap: wrap;
 }
 .page-title-row h1 { margin: 0; }
 .brand-logo-inline {
   display: block;
-  height: 56px;
+  height: 140px;
   width: auto;
   border-radius: 8px;
 }
 @media (max-width: 640px) {
-  .brand-logo-inline { height: 42px; }
+  .brand-logo-inline { height: 105px; }
 }
 
 .chart-title {
