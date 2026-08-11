@@ -272,6 +272,33 @@ select {
   outline-offset: 2px;
 }
 
+/* Dashboard header row: logo left-aligned with the table below it, next
+   to a compacted "Нов завод" form */
+.dashboard-top {
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.logo-box {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+.brand-logo { display: block; height: 130px; width: auto; }
+.dashboard-top .compact-form {
+  flex: 1;
+  min-width: 260px;
+  margin-bottom: 0;
+}
+@media (max-width: 640px) {
+  .brand-logo { height: 90px; }
+}
+
 .chart-title {
   font-size: 14px;
   font-weight: 600;
