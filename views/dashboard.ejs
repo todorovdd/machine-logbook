@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Заводи · Дигитален дневник</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Дигитален <span>дневник</span></div>
+    <div class="user-info">
+      <span><%= username %></span>
+      <a href="/logout">Изход</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <h1>Заводи</h1>
+    <p class="muted">Избери завод, за да видиш машините в него, или добави нов завод.</p>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Нов завод</h2>
+      <form class="inline-form" method="POST" action="/factories">
+        <div class="field">
+          <label>Име на завода</label>
+          <input type="text" name="name" placeholder="напр. Завод Пловдив" required>
+        </div>
+        <div class="field">
+          <label>Локация (по избор)</label>
+          <input type="text" name="location" placeholder="напр. гр. Пловдив">
+        </div>
+        <button type="submit">Добави завод</button>
+      </form>
+    </div>
+
+    <% if (factories.length === 0) { %>
+      <div class="empty">Все още няма добавени заводи.</div>
+    <% } else { %>
+      <div class="grid">
+        <% factories.forEach(f => { %>
+          <div class="item-card">
+            <div class="title"><a href="/factories/<%= f.id %>"><%= f.name %></a></div>
+            <div class="meta"><%= f.location || 'без локация' %></div>
+            <div class="meta"><%= f.machine_count %> машини</div>
+            <form method="POST" action="/factories/<%= f.id %>/delete" style="margin-top:8px;"
+                  onsubmit="return confirm('Изтриване на завода и всички машини в него?');">
+              <button type="submit" class="danger" style="font-size:12px; padding:4px 10px;">Изтрий завод</button>
+            </form>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>

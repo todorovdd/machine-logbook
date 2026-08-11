@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= machine.name %> · Обслужване</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container narrow">
+    <div class="public-header">
+      <div class="factory-name"><%= factory ? factory.name : '' %></div>
+      <h1><%= machine.name %></h1>
+      <p class="muted"><%= machine.model || '' %> <%= machine.serial_number ? '· сериен №: ' + machine.serial_number : '' %></p>
+    </div>
+
+    <% if (records.length === 0) { %>
+      <div class="card">
+        <div class="empty">Все още няма записано обслужване за тази машина.</div>
+      </div>
+    <% } else { %>
+      <div class="card">
+        <span class="badge ok">Последно обслужване</span>
+        <div class="record" style="margin-top:10px; background:transparent; padding-left:12px;">
+          <div class="date"><%= records[0].service_date %></div>
+          <div class="work"><%= records[0].work_done %></div>
+          <% if (records[0].notes) { %><div class="notes"><%= records[0].notes %></div><% } %>
+          <% if (records[0].technician) { %><div class="tech">Техник: <%= records[0].technician %></div><% } %>
+        </div>
+      </div>
+
+      <% if (records.length > 1) { %>
+        <h2>По-стари записи</h2>
+        <% records.slice(1).forEach(r => { %>
+          <div class="record">
+            <div class="date"><%= r.service_date %></div>
+            <div class="work"><%= r.work_done %></div>
+            <% if (r.notes) { %><div class="notes"><%= r.notes %></div><% } %>
+            <% if (r.technician) { %><div class="tech">Техник: <%= r.technician %></div><% } %>
+          </div>
+        <% }) %>
+      <% } %>
+    <% } %>
+
+    <p class="muted" style="text-align:center; margin-top:24px; font-size:12px;">
+      Дигитален дневник за обслужване · само за тази машина
+    </p>
+  </div>
+</body>
+</html>

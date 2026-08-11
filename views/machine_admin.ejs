@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= machine.name %> · Дигитален дневник</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Дигитален <span>дневник</span></div>
+    <div class="user-info">
+      <span><%= username %></span>
+      <a href="/logout">Изход</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Заводи</a> / <a href="/factories/<%= factory.id %>"><%= factory.name %></a> / <%= machine.name %>
+    </div>
+    <h1><%= machine.name %></h1>
+    <p class="muted"><%= machine.model || '' %> <%= machine.serial_number ? '· сериен №: ' + machine.serial_number : '' %></p>
+
+    <div class="card">
+      <h2 style="margin-top:0;">QR код на машината</h2>
+      <p class="muted">Разпечатай и залепи този код на машината. При сканиране мениджърите виждат само данните за нея.</p>
+      <div class="qr-box">
+        <img src="/machines/<%= machine.id %>/qr.png" alt="QR код">
+      </div>
+      <div class="url-box">
+        <span><%= publicUrl %></span>
+      </div>
+      <p style="margin-top:10px;">
+        <a class="btn secondary" href="/machines/<%= machine.id %>/qr.png" download="qr-<%= machine.slug %>.png">Свали QR (PNG)</a>
+        <a class="btn secondary" href="<%= publicUrl %>" target="_blank">Отвори публичната страница</a>
+      </p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Ново обслужване</h2>
+      <form method="POST" action="/machines/<%= machine.id %>/records">
+        <div class="field">
+          <label>Дата на обслужване</label>
+          <input type="date" name="service_date" required value="<%= new Date().toISOString().slice(0,10) %>">
+        </div>
+        <div class="field">
+          <label>Извършена работа</label>
+          <textarea name="work_done" placeholder="напр. Смяна на филтър, смазване на лагери" required></textarea>
+        </div>
+        <div class="field">
+          <label>Бележки (по избор)</label>
+          <textarea name="notes" placeholder="Допълнителни наблюдения, препоръки за следващ път..."></textarea>
+        </div>
+        <div class="field">
+          <label>Техник (по избор)</label>
+          <input type="text" name="technician" placeholder="напр. Димитър Тодоров">
+        </div>
+        <button type="submit">Запиши обслужване</button>
+      </form>
+    </div>
+
+    <h2>История на обслужване (<%= records.length %>)</h2>
+    <% if (records.length === 0) { %>
+      <div class="empty">Все още няма записи за тази машина.</div>
+    <% } else { %>
+      <% records.forEach(r => { %>
+        <div class="record">
+          <div class="date"><%= r.service_date %></div>
+          <div class="work"><%= r.work_done %></div>
+          <% if (r.notes) { %><div class="notes"><%= r.notes %></div><% } %>
+          <% if (r.technician) { %><div class="tech">Техник: <%= r.technician %></div><% } %>
+          <form method="POST" action="/records/<%= r.id %>/delete" style="margin-top:6px;"
+                onsubmit="return confirm('Изтриване на този запис?');">
+            <button type="submit" class="danger" style="font-size:12px; padding:3px 9px;">Изтрий</button>
+          </form>
+        </div>
+      <% }) %>
+    <% } %>
+
+    <form method="POST" action="/machines/<%= machine.id %>/delete" style="margin-top:20px;"
+          onsubmit="return confirm('Изтриване на машината и цялата ѝ история?');">
+      <button type="submit" class="danger">Изтрий машината</button>
+    </form>
+  </div>
+</body>
+</html>

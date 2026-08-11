@@ -1,0 +1,16 @@
+[build]
+  functions = "netlify/functions"
+  publish = "public"
+
+[functions]
+  included_files = ["views/**"]
+  node_bundler = "esbuild"
+
+# Static files inside /public (css, images) are served directly by Netlify
+# and take priority over this redirect automatically. Everything else
+# (admin panel, public machine pages, QR images) goes through the Express
+# app running as a Netlify Function.
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server/:splat"
+  status = 200

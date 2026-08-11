@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= factory.name %> · Дигитален дневник</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Дигитален <span>дневник</span></div>
+    <div class="user-info">
+      <span><%= username %></span>
+      <a href="/logout">Изход</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="breadcrumb"><a href="/">Заводи</a> / <%= factory.name %></div>
+    <h1><%= factory.name %></h1>
+    <p class="muted"><%= factory.location || '' %></p>
+
+    <div class="card">
+      <h2 style="margin-top:0;">Нова машина</h2>
+      <form class="inline-form" method="POST" action="/factories/<%= factory.id %>/machines">
+        <div class="field">
+          <label>Име на машината</label>
+          <input type="text" name="name" placeholder="напр. CNC фреза №3" required>
+        </div>
+        <div class="field">
+          <label>Модел (по избор)</label>
+          <input type="text" name="model" placeholder="напр. Haas VF-2">
+        </div>
+        <div class="field">
+          <label>Сериен номер (по избор)</label>
+          <input type="text" name="serial_number" placeholder="напр. SN-12345">
+        </div>
+        <button type="submit">Добави машина</button>
+      </form>
+    </div>
+
+    <h2>Машини (<%= machines.length %>)</h2>
+    <% if (machines.length === 0) { %>
+      <div class="empty">Все още няма добавени машини в този завод.</div>
+    <% } else { %>
+      <div class="grid">
+        <% machines.forEach(m => { %>
+          <div class="item-card">
+            <div class="title"><a href="/machines/<%= m.id %>"><%= m.name %></a></div>
+            <div class="meta"><%= m.model || '' %> <%= m.serial_number ? '· ' + m.serial_number : '' %></div>
+            <div class="meta">
+              <% if (m.last_service_date) { %>
+                <span class="badge ok">последно: <%= m.last_service_date %></span>
+              <% } else { %>
+                <span class="badge none">без обслужване</span>
+              <% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>
