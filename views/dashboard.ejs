@@ -20,27 +20,25 @@
   </header>
 
   <div class="container">
-    <h1>Заводи</h1>
+    <div class="page-title-row">
+      <h1>Заводи</h1>
+      <img src="/images/logo.png" alt="Рагнар Ойл" class="brand-logo-inline">
+    </div>
     <p class="muted">Избери завод, за да видиш машините в него, или добави нов завод.</p>
 
-    <div class="dashboard-top">
-      <div class="logo-box">
-        <img src="/images/logo.png" alt="Рагнар Ойл" class="brand-logo">
-      </div>
-      <div class="card compact-form">
-        <div class="card-header"><h2 class="plain" style="margin:0;">Нов завод</h2></div>
-        <form class="inline-form" method="POST" action="/factories">
-          <div class="field" style="margin-bottom:0;">
-            <label>Име на завода</label>
-            <input type="text" name="name" placeholder="напр. Завод Пловдив" required>
-          </div>
-          <div class="field" style="margin-bottom:0;">
-            <label>Локация (по избор)</label>
-            <input type="text" name="location" placeholder="напр. гр. Пловдив">
-          </div>
-          <button type="submit">+ Добави завод</button>
-        </form>
-      </div>
+    <div class="card">
+      <div class="card-header"><h2 class="plain" style="margin:0;">Нов завод</h2></div>
+      <form class="inline-form" method="POST" action="/factories">
+        <div class="field" style="margin-bottom:0;">
+          <label>Име на завода</label>
+          <input type="text" name="name" placeholder="напр. Завод Пловдив" required>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>Локация (по избор)</label>
+          <input type="text" name="location" placeholder="напр. гр. Пловдив">
+        </div>
+        <button type="submit">+ Добави завод</button>
+      </form>
     </div>
 
     <h2>Заводи (<%= factories.length %>)</h2>
