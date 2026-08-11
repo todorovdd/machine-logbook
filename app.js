@@ -1,24 +1,37 @@
-const path = require('path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
+const ejs = require('ejs');
 const QRCode = require('qrcode');
 const db = require('./db');
 const { issueSession, clearSession, currentUser, requireAuth } = require('./auth');
+
+// Templates are bundled into a plain JS object at build/install time (see
+// scripts/build-views.js, runs automatically via the "postinstall" npm
+// script) instead of being read from views/*.ejs on disk. Netlify Functions
+// only reliably package files that are statically `require`d, so this
+// avoids any risk of the views folder not being found at runtime.
+const templates = require('./views-bundled.js');
 
 function buildApp() {
   const app = express();
   const BASE_URL = process.env.BASE_URL || 'http://localhost:8888';
 
-  app.set('view engine', 'ejs');
-  app.set('views', path.join(__dirname, 'views'));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+
+  function render(res, name, data, statusCode) {
+    const tpl = templates[name];
+    if (!tpl) throw new Error(`Липсва шаблон "${name}" в views-bundled.js`);
+    const html = ejs.render(tpl, data, { filename: name });
+    if (statusCode) res.status(statusCode);
+    res.type('html').send(html);
+  }
 
   // ---------- AUTH ----------
   app.get('/login', (req, res) => {
     if (currentUser(req)) return res.redirect('/');
-    res.render('login', { error: null });
+    render(res, 'login', { error: null });
   });
 
   app.post('/login', async (req, res, next) => {
@@ -26,7 +39,7 @@ function buildApp() {
       const { username, password } = req.body;
       const user = await db.getUserByUsername(username || '');
       if (!user || !bcrypt.compareSync(password || '', user.password_hash)) {
-        return res.render('login', { error: 'Грешно потребителско име или парола.' });
+        return render(res, 'login', { error: 'Грешно потребителско име или парола.' });
       }
       issueSession(res, user);
       res.redirect('/');
@@ -42,7 +55,7 @@ function buildApp() {
   app.get('/', requireAuth, async (req, res, next) => {
     try {
       const factories = await db.listFactoriesWithMachineCount();
-      res.render('dashboard', { factories, username: req.user.username });
+      render(res, 'dashboard', { factories, username: req.user.username });
     } catch (err) { next(err); }
   });
 
@@ -69,7 +82,7 @@ function buildApp() {
       const factory = await db.getFactory(req.params.id);
       if (!factory) return res.status(404).send('Заводът не е намерен.');
       const machines = await db.listMachinesByFactory(req.params.id);
-      res.render('factory', { factory, machines, username: req.user.username });
+      render(res, 'factory', { factory, machines, username: req.user.username });
     } catch (err) { next(err); }
   });
 
@@ -91,7 +104,7 @@ function buildApp() {
       const factory = await db.getFactory(machine.factory_id);
       const records = await db.listRecordsByMachine(machine.id);
       const publicUrl = `${BASE_URL}/m/${machine.slug}`;
-      res.render('machine_admin', { machine, factory, records, publicUrl, username: req.user.username });
+      render(res, 'machine_admin', { machine, factory, records, publicUrl, username: req.user.username });
     } catch (err) { next(err); }
   });
 
@@ -138,10 +151,10 @@ function buildApp() {
   app.get('/m/:slug', async (req, res, next) => {
     try {
       const machine = await db.getMachineBySlug(req.params.slug);
-      if (!machine) return res.status(404).render('public_not_found');
+      if (!machine) return render(res, 'public_not_found', {}, 404);
       const factory = await db.getFactory(machine.factory_id);
       const records = await db.listRecordsByMachine(machine.id);
-      res.render('machine_public', { machine, factory, records });
+      render(res, 'machine_public', { machine, factory, records });
     } catch (err) { next(err); }
   });
 

@@ -3,7 +3,6 @@
   publish = "public"
 
 [functions]
-  included_files = ["views/**"]
   node_bundler = "esbuild"
 
 # Static files inside /public (css, images) are served directly by Netlify

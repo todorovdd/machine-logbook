@@ -4,6 +4,8 @@
   "description": "Digital logbook for factory machine servicing — Netlify Functions + Supabase edition",
   "main": "local-dev.js",
   "scripts": {
+    "postinstall": "node scripts/build-views.js",
+    "build": "node scripts/build-views.js",
     "dev": "netlify dev",
     "start:local": "node local-dev.js",
     "setup-admin": "node scripts/create-admin.js"
