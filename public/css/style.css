@@ -272,13 +272,14 @@ select {
   outline-offset: 2px;
 }
 
-/* Dashboard title row: "Заводи" heading with the logo immediately next to it */
+/* Dashboard title row: logo directly above "Заводи", both centered on the page */
 .page-title-row {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
 }
 .page-title-row h1 { margin: 0; }
 .brand-logo-inline {
