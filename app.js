@@ -20,10 +20,20 @@ function buildApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
+  // Dates are stored as ISO "YYYY-MM-DD" (needed by <input type="date"> and
+  // for correct chronological sorting), but displayed to the user in the
+  // Bulgarian "ДД.ММ.ГГГГ" format. Available in every template as fmtDate().
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return iso;
+    return `${m[3]}.${m[2]}.${m[1]}`;
+  }
+
   function render(res, name, data, statusCode) {
     const tpl = templates[name];
     if (!tpl) throw new Error(`Липсва шаблон "${name}" в views-bundled.js`);
-    const html = ejs.render(tpl, data, { filename: name });
+    const html = ejs.render(tpl, Object.assign({ fmtDate }, data), { filename: name });
     if (statusCode) res.status(statusCode);
     res.type('html').send(html);
   }

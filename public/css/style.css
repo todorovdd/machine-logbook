@@ -272,6 +272,13 @@ select {
   outline-offset: 2px;
 }
 
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
 button, .btn {
   display: inline-flex;
   align-items: center;

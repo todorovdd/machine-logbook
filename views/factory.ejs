@@ -87,7 +87,7 @@
                 <td class="muted"><%= m.model || '—' %><%= m.serial_number ? ' · ' + m.serial_number : '' %></td>
                 <td>
                   <% if (m.last_service_date) { %>
-                    <span class="badge ok">последно: <%= m.last_service_date %></span>
+                    <span class="badge ok">последно: <%= fmtDate(m.last_service_date) %></span>
                   <% } else { %>
                     <span class="badge warn">без обслужване</span>
                   <% } %>

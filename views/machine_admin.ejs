@@ -39,7 +39,7 @@
             <% if (machine.custom_fields && machine.custom_fields[f.key]) { %>
               <div>
                 <div class="fd-meta" style="margin-bottom:2px;"><%= f.label %></div>
-                <div style="font-size:14px; font-weight:600;"><%= machine.custom_fields[f.key] %></div>
+                <div style="font-size:14px; font-weight:600;"><%= f.field_type === 'date' ? fmtDate(machine.custom_fields[f.key]) : machine.custom_fields[f.key] %></div>
               </div>
             <% } %>
           <% }) %>
@@ -132,6 +132,7 @@
         </div>
         <% numericFields.forEach(function(f) { %>
           <div class="chart-wrap" id="chart-wrap-<%= f.key %>" style="display:none; margin-top:14px;">
+            <div class="chart-title"><%= f.label %></div>
             <canvas id="chart-<%= f.key %>" height="90"></canvas>
           </div>
         <% }) %>
@@ -141,8 +142,8 @@
           numericFields.reduce(function(acc, f) {
             acc[f.key] = records
               .filter(function(r) { return r.custom_fields && r.custom_fields[f.key] !== undefined && r.custom_fields[f.key] !== ''; })
-              .map(function(r) { return { date: r.service_date, value: Number(r.custom_fields[f.key]) }; })
-              .sort(function(a, b) { return a.date.localeCompare(b.date); });
+              .sort(function(a, b) { return a.service_date.localeCompare(b.service_date); })
+              .map(function(r) { return { date: fmtDate(r.service_date), value: Number(r.custom_fields[f.key]) }; });
             return acc;
           }, {})
         ).replace(/</g, '\\u003c') %>;
@@ -155,14 +156,14 @@
     <% } else { %>
       <% records.forEach(r => { %>
         <div class="record">
-          <div class="date"><%= r.service_date %></div>
+          <div class="date"><%= fmtDate(r.service_date) %></div>
           <div class="work"><%= r.work_done %></div>
           <% if (r.notes) { %><div class="notes"><%= r.notes %></div><% } %>
           <% if (r.technician) { %><div class="tech">Техник: <%= r.technician %></div><% } %>
           <% if (recordFieldDefs && recordFieldDefs.length && r.custom_fields) { %>
             <% recordFieldDefs.forEach(f => { %>
               <% if (r.custom_fields[f.key]) { %>
-                <div class="cf-row"><span class="cf-label"><%= f.label %>:</span> <%= r.custom_fields[f.key] %></div>
+                <div class="cf-row"><span class="cf-label"><%= f.label %>:</span> <%= f.field_type === 'date' ? fmtDate(r.custom_fields[f.key]) : r.custom_fields[f.key] %></div>
               <% } %>
             <% }) %>
           <% } %>
