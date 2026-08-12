@@ -67,6 +67,27 @@
       </form>
     </div>
 
+    <div class="card">
+      <div class="card-header"><h2 class="plain" style="margin:0;">Справка за обслужване</h2></div>
+      <p class="muted" style="margin-top:0;">Изтегли справка с обслужването на всички машини в завода — за изпращане на клиента (напр. на 6 месеца или веднъж годишно). Периодът е по избор — остави празно за цялата история.</p>
+      <form method="GET">
+        <div class="form-grid">
+          <div class="field" style="margin-bottom:0;">
+            <label>От дата (по избор)</label>
+            <input type="date" name="from">
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>До дата (по избор)</label>
+            <input type="date" name="to">
+          </div>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="submit" formaction="/factories/<%= factory.id %>/report.xlsx">⬇ Свали Excel</button>
+          <button type="submit" formaction="/factories/<%= factory.id %>/report.pdf" class="btn secondary">⬇ Свали PDF</button>
+        </div>
+      </form>
+    </div>
+
     <h2>Машини (<%= machines.length %>)</h2>
     <% if (machines.length === 0) { %>
       <div class="card"><div class="empty">Все още няма добавени машини в този завод.</div></div>

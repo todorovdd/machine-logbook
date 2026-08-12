@@ -5,6 +5,8 @@ const ejs = require('ejs');
 const QRCode = require('qrcode');
 const db = require('./db');
 const { issueSession, clearSession, currentUser, requireAuth } = require('./auth');
+const { fmtDate } = require('./dateFmt');
+const { buildExcelReport, buildPdfReport, asciiSlug } = require('./reports');
 
 // Templates are bundled into a plain JS object at build/install time (see
 // scripts/build-views.js, runs automatically via the "postinstall" npm
@@ -19,16 +21,6 @@ function buildApp() {
 
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
-
-  // Dates are stored as ISO "YYYY-MM-DD" (needed by <input type="date"> and
-  // for correct chronological sorting), but displayed to the user in the
-  // Bulgarian "ДД.ММ.ГГГГ" format. Available in every template as fmtDate().
-  function fmtDate(iso) {
-    if (!iso) return '';
-    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!m) return iso;
-    return `${m[3]}.${m[2]}.${m[1]}`;
-  }
 
   function render(res, name, data, statusCode) {
     const tpl = templates[name];
@@ -217,6 +209,53 @@ function buildApp() {
       const url = `${BASE_URL}/m/${machine.slug}`;
       const buffer = await QRCode.toBuffer(url, { width: 500, margin: 2 });
       res.type('png').send(buffer);
+    } catch (err) { next(err); }
+  });
+
+  // ---------- FACTORY SERVICE REPORT (Excel / PDF, for sending to clients) ----------
+  function parseReportRange(query) {
+    const isIsoDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    return {
+      from: isIsoDate(query.from) ? query.from : null,
+      to: isIsoDate(query.to) ? query.to : null,
+    };
+  }
+
+  async function gatherFactoryReportData(factoryId, from, to) {
+    const factory = await db.getFactory(factoryId);
+    if (!factory) return null;
+    const machines = await db.listMachinesByFactory(factoryId);
+    const recordFieldDefs = await db.listFieldDefinitions('record');
+    const data = [];
+    for (const machine of machines) {
+      const allRecords = await db.listRecordsByMachine(machine.id);
+      const records = allRecords
+        .filter((r) => (!from || r.service_date >= from) && (!to || r.service_date <= to))
+        .sort((a, b) => a.service_date.localeCompare(b.service_date));
+      data.push({ machine, records });
+    }
+    return { factory, data, recordFieldDefs };
+  }
+
+  app.get('/factories/:id/report.xlsx', requireAuth, async (req, res, next) => {
+    try {
+      const { from, to } = parseReportRange(req.query);
+      const report = await gatherFactoryReportData(req.params.id, from, to);
+      if (!report) return res.status(404).send('Заводът не е намерен.');
+      const buffer = await buildExcelReport(report, from, to);
+      res.set('Content-Disposition', `attachment; filename="spravka-${asciiSlug(report.factory.name)}.xlsx"`);
+      res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').send(buffer);
+    } catch (err) { next(err); }
+  });
+
+  app.get('/factories/:id/report.pdf', requireAuth, async (req, res, next) => {
+    try {
+      const { from, to } = parseReportRange(req.query);
+      const report = await gatherFactoryReportData(req.params.id, from, to);
+      if (!report) return res.status(404).send('Заводът не е намерен.');
+      const buffer = await buildPdfReport(report, from, to);
+      res.set('Content-Disposition', `attachment; filename="spravka-${asciiSlug(report.factory.name)}.pdf"`);
+      res.type('application/pdf').send(buffer);
     } catch (err) { next(err); }
   });
 

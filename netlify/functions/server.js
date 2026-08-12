@@ -9,7 +9,13 @@ const app = buildApp();
 // serverless-http which content types are binary makes it base64-encode
 // the body and set isBase64Encoded, which Netlify needs to serve it intact.
 const handler = serverless(app, {
-  binary: ['image/png', 'image/*', 'application/octet-stream'],
+  binary: [
+    'image/png',
+    'image/*',
+    'application/octet-stream',
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  ],
 });
 
 // Netlify's redirect forwards the full original path as
