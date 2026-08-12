@@ -43,60 +43,97 @@ function periodLabel(from, to) {
   return `Период: до ${fmtDate(to)}`;
 }
 
-async function buildExcelReport({ factory, data, recordFieldDefs }, from, to) {
+async function buildExcelReport({ factory, data, recordFieldDefs, machineFieldDefs }, from, to) {
+  // "Продукт" is a machine-level custom field (defined by the admin in
+  // Полета) — look up its key once so we can show its value right under
+  // each machine's name, same as in the PDF report.
+  const productFieldDef = (machineFieldDefs || []).find(
+    (f) => f.label && f.label.trim().toLowerCase() === 'продукт'
+  );
+
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Дигитален дневник';
   wb.created = new Date();
   const sheet = wb.addWorksheet('Справка');
 
-  sheet.mergeCells('A1:F1');
-  sheet.getCell('A1').value = `Справка за обслужване — ${factory.name}`;
-  sheet.getCell('A1').font = { bold: true, size: 14 };
+  const LAST_COL = 'E'; // Дата, Извършено, Техник, Измервания, Бележки
+  let r = 1;
 
-  sheet.mergeCells('A2:F2');
-  sheet.getCell('A2').value = periodLabel(from, to);
-  sheet.getCell('A2').font = { italic: true, color: { argb: 'FF666666' } };
+  sheet.mergeCells(`A${r}:${LAST_COL}${r}`);
+  sheet.getCell(`A${r}`).value = `Справка за обслужване — ${factory.name}`;
+  sheet.getCell(`A${r}`).font = { bold: true, size: 14 };
+  r++;
 
-  sheet.mergeCells('A3:F3');
-  sheet.getCell('A3').value = `Генерирано на: ${fmtDate(new Date().toISOString().slice(0, 10))}`;
-  sheet.getCell('A3').font = { size: 9, color: { argb: 'FF999999' } };
+  sheet.mergeCells(`A${r}:${LAST_COL}${r}`);
+  sheet.getCell(`A${r}`).value = periodLabel(from, to);
+  sheet.getCell(`A${r}`).font = { italic: true, color: { argb: 'FF666666' } };
+  r++;
 
-  const headers = ['Машина', 'Дата', 'Извършено', 'Техник', 'Измервания', 'Бележки'];
-  const headerRow = sheet.getRow(5);
-  headers.forEach((h, i) => { headerRow.getCell(i + 1).value = h; });
-  headerRow.font = { bold: true };
-  headerRow.eachCell((c) => {
-    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFEFEF' } };
-    c.border = { bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
-  });
+  sheet.mergeCells(`A${r}:${LAST_COL}${r}`);
+  sheet.getCell(`A${r}`).value = `Генерирано на: ${fmtDate(new Date().toISOString().slice(0, 10))}`;
+  sheet.getCell(`A${r}`).font = { size: 9, color: { argb: 'FF999999' } };
+  r += 2; // blank spacer row
 
-  let rowIdx = 6;
+  const headers = ['Дата', 'Извършено', 'Техник', 'Измервания', 'Бележки'];
+
   for (const { machine, records } of data) {
+    sheet.mergeCells(`A${r}:${LAST_COL}${r}`);
+    sheet.getCell(`A${r}`).value = machine.name;
+    sheet.getCell(`A${r}`).font = { bold: true, size: 12, color: { argb: 'FF8A6D1E' } };
+    r++;
+
+    const metaBits = [];
+    if (machine.model) metaBits.push(machine.model);
+    if (machine.serial_number) metaBits.push('сериен №: ' + machine.serial_number);
+    if (metaBits.length) {
+      sheet.mergeCells(`A${r}:${LAST_COL}${r}`);
+      sheet.getCell(`A${r}`).value = metaBits.join(' · ');
+      sheet.getCell(`A${r}`).font = { italic: true, size: 9, color: { argb: 'FF777777' } };
+      r++;
+    }
+
+    const productValue = productFieldDef && machine.custom_fields ? machine.custom_fields[productFieldDef.key] : null;
+    if (productValue) {
+      sheet.mergeCells(`A${r}:${LAST_COL}${r}`);
+      sheet.getCell(`A${r}`).value = `Продукт: ${productValue}`;
+      sheet.getCell(`A${r}`).font = { size: 9.5, color: { argb: 'FF555555' } };
+      r++;
+    }
+
+    const headerRow = sheet.getRow(r);
+    headers.forEach((h, i) => { headerRow.getCell(i + 1).value = h; });
+    headerRow.font = { bold: true };
+    headerRow.eachCell((c) => {
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFEFEF' } };
+      c.border = { bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } } };
+    });
+    r++;
+
     if (!records.length) {
-      const row = sheet.getRow(rowIdx++);
-      row.getCell(1).value = machine.name;
-      row.getCell(2).value = '—';
-      row.getCell(3).value = 'Няма записи за периода';
-      continue;
+      sheet.mergeCells(`A${r}:${LAST_COL}${r}`);
+      sheet.getCell(`A${r}`).value = 'Няма записи за периода';
+      sheet.getCell(`A${r}`).font = { italic: true, color: { argb: 'FF999999' } };
+      r++;
+    } else {
+      for (const rec of records) {
+        const row = sheet.getRow(r);
+        row.getCell(1).value = fmtDate(rec.service_date);
+        row.getCell(2).value = rec.work_done || '';
+        row.getCell(3).value = rec.technician || '';
+        row.getCell(4).value = measurementsText(rec, recordFieldDefs);
+        row.getCell(5).value = rec.notes || '';
+        r++;
+      }
     }
-    for (const r of records) {
-      const row = sheet.getRow(rowIdx++);
-      row.getCell(1).value = machine.name;
-      row.getCell(2).value = fmtDate(r.service_date);
-      row.getCell(3).value = r.work_done || '';
-      row.getCell(4).value = r.technician || '';
-      row.getCell(5).value = measurementsText(r, recordFieldDefs);
-      row.getCell(6).value = r.notes || '';
-    }
+    r++; // blank spacer row before the next machine
   }
 
-  sheet.getColumn(1).width = 24;
-  sheet.getColumn(2).width = 13;
-  sheet.getColumn(3).width = 28;
-  sheet.getColumn(4).width = 18;
-  sheet.getColumn(5).width = 32;
-  sheet.getColumn(6).width = 34;
-  [3, 5, 6].forEach((i) => { sheet.getColumn(i).alignment = { wrapText: true, vertical: 'top' }; });
+  sheet.getColumn(1).width = 14;
+  sheet.getColumn(2).width = 28;
+  sheet.getColumn(3).width = 20;
+  sheet.getColumn(4).width = 32;
+  sheet.getColumn(5).width = 36;
+  [2, 4, 5].forEach((i) => { sheet.getColumn(i).alignment = { wrapText: true, vertical: 'top' }; });
 
   return wb.xlsx.writeBuffer();
 }
