@@ -226,6 +226,7 @@ function buildApp() {
     if (!factory) return null;
     const machines = await db.listMachinesByFactory(factoryId);
     const recordFieldDefs = await db.listFieldDefinitions('record');
+    const machineFieldDefs = await db.listFieldDefinitions('machine');
     const data = [];
     for (const machine of machines) {
       const allRecords = await db.listRecordsByMachine(machine.id);
@@ -234,7 +235,7 @@ function buildApp() {
         .sort((a, b) => a.service_date.localeCompare(b.service_date));
       data.push({ machine, records });
     }
-    return { factory, data, recordFieldDefs };
+    return { factory, data, recordFieldDefs, machineFieldDefs };
   }
 
   app.get('/factories/:id/report.xlsx', requireAuth, async (req, res, next) => {

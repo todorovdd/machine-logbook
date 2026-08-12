@@ -101,9 +101,16 @@ async function buildExcelReport({ factory, data, recordFieldDefs }, from, to) {
   return wb.xlsx.writeBuffer();
 }
 
-function buildPdfReport({ factory, data, recordFieldDefs }, from, to) {
+function buildPdfReport({ factory, data, recordFieldDefs, machineFieldDefs }, from, to) {
   return new Promise((resolve, reject) => {
     try {
+      // "Продукт" is a machine-level custom field (defined by the admin in
+      // Полета) — look up its key once so we can show its value under each
+      // machine's name in the report, if such a field exists.
+      const productFieldDef = (machineFieldDefs || []).find(
+        (f) => f.label && f.label.trim().toLowerCase() === 'продукт'
+      );
+
       // font: null skips pdfkit's default eager load of Helvetica.afm from
       // disk at construction time — that file lives inside node_modules and
       // is never bundled into the Netlify Function (esbuild only bundles
@@ -112,7 +119,7 @@ function buildPdfReport({ factory, data, recordFieldDefs }, from, to) {
       // even though it works fine locally. We only ever use our own
       // embedded TTF fonts (registered below), so the standard fonts are
       // never needed.
-      const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true, font: null });
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 50, bufferPages: true, font: null });
       const chunks = [];
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -146,7 +153,7 @@ function buildPdfReport({ factory, data, recordFieldDefs }, from, to) {
       doc.moveDown(1);
 
       // ---- Per-machine table ----
-      const colWidths = { date: 60, work: 120, tech: 78, meas: 88 };
+      const colWidths = { date: 65, work: 150, tech: 90, meas: 120 };
       colWidths.notes = pageWidth - colWidths.date - colWidths.work - colWidths.tech - colWidths.meas;
       const colLabels = ['Дата', 'Извършено', 'Техник', 'Измервания', 'Бележки'];
       const colKeys = ['date', 'work', 'tech', 'meas', 'notes'];
@@ -182,6 +189,11 @@ function buildPdfReport({ factory, data, recordFieldDefs }, from, to) {
         if (metaBits.length) {
           doc.font('Regular').fontSize(9).fillColor('#777777')
             .text(metaBits.join(' · '), left, doc.y, { width: pageWidth });
+        }
+        const productValue = productFieldDef && machine.custom_fields ? machine.custom_fields[productFieldDef.key] : null;
+        if (productValue) {
+          doc.font('Regular').fontSize(9.5).fillColor('#555555')
+            .text(`Продукт: ${productValue}`, left, doc.y, { width: pageWidth });
         }
         doc.moveDown(0.5);
 
@@ -232,12 +244,13 @@ function buildPdfReport({ factory, data, recordFieldDefs }, from, to) {
       // the footer text. Temporarily zeroing the bottom margin during this
       // one text() call disables that check.
       const pageCount = doc.bufferedPageRange().count;
+      const generatedOn = fmtDate(new Date().toISOString().slice(0, 10));
       for (let i = 0; i < pageCount; i++) {
         doc.switchToPage(i);
         const savedBottom = doc.page.margins.bottom;
         doc.page.margins.bottom = 0;
         doc.font('Regular').fontSize(8).fillColor('#aaaaaa')
-          .text(`Страница ${i + 1} от ${pageCount}`, left, doc.page.height - savedBottom + 12, {
+          .text(`Страница ${i + 1} от ${pageCount}  ·  Генерирано на: ${generatedOn}`, left, doc.page.height - savedBottom + 12, {
             width: pageWidth, align: 'center', lineBreak: false,
           });
         doc.page.margins.bottom = savedBottom;
